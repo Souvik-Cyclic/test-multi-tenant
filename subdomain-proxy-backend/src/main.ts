@@ -16,20 +16,42 @@ async function bootstrap() {
   });
 
   const subdomainMiddleware = new SubdomainMiddleware(redisClient);
-
-  const frontend = next({
-    dev: true,
-    // dev: false,
-    dir: path.join(__dirname, '..', 'frontend'),
-  });
-  const handle = frontend.getRequestHandler();
-  await frontend.prepare();
-
   server.use((req, res, next) => {
     subdomainMiddleware.use(req, res, next);
   });
 
-  server.use((req, res, next) => {
+  const nextApps = {
+    default: next({dev: true, dir: path.join(__dirname, '..', 'default')}),
+    frontend: next({dev: true, dir: path.join(__dirname, '..', 'frontend')}),
+    new: next({dev: true, dir: path.join(__dirname, '..', 'new')}),
+  };
+
+  await Promise.all([
+    nextApps.default.prepare(),
+    nextApps.frontend.prepare(),
+    nextApps.new.prepare(),
+  ]);
+
+  // const frontend = next({
+  //   dev: true,
+  //   // dev: false,
+  //   dir: path.join(__dirname, '..', 'frontend'),
+  // });
+  // const handle = frontend.getRequestHandler();
+  // await frontend.prepare();
+
+  server.use((req, res) => {
+    let appName = req['appName'];
+    let app = nextApps.default;
+    if (appName === 'new') {
+      app = nextApps.new;
+    } else if (appName === 'frontend') {
+      app = nextApps.frontend;
+    }
+    if (!app) {
+      return res.status(404).send('App not found');
+    }
+    const handle = app.getRequestHandler();
     return handle(req, res);
   });
 

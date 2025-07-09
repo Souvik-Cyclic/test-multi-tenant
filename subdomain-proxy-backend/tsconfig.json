@@ -20,5 +20,5 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   },
-  "exclude": ["frontend", "new"]
+  "exclude": ["frontend", "new", "default"]
 }

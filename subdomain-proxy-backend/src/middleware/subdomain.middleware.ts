@@ -11,26 +11,37 @@ export class SubdomainMiddleware implements NestMiddleware {
 
   async use(req: Request, res: Response, next: NextFunction) {
     const host = req.headers.host;
-    const subdomain = host?.split('.')[0];
-    // photo.name.ourdomain
-    // name.ourdomain
-    console.log('Subdomain:', subdomain);
-    if (!subdomain || RESTRICTED_SUBDOMAINS.includes(subdomain)) {
+    const hostParts = host?.split('.') || [];
+    let appName: string | undefined;
+    let userName: string | undefined;
+    if (hostParts.length >3) return res.status(400).send('Invalid host format');
+    if (hostParts.length == 3) {
+      appName = hostParts[0];
+      userName = hostParts[1];
+    } else if (hostParts.length == 2) {
+      userName = hostParts[0];
+    }
+    console.log('App name: ', appName);
+    console.log('User name: ', userName);
+
+    if (!userName || (appName && RESTRICTED_SUBDOMAINS.includes(appName))) {
       return res.status(403).send('Subdomain not allowed');
     }
 
     try {
       const start = Date.now();
 
-      const exists = await this.redisClient.exists(subdomain);
+      const exists = await this.redisClient.exists(userName);
 
-      console.log(`Check for subdomain "${subdomain}" took ${Date.now() - start}ms`);
+      console.log(`Check for username "${userName}" took ${Date.now() - start}ms`);
 
       if (!exists) {
         return res.status(404).send('Subdomain not found');
       }
 
-      req['subdomain'] = subdomain;
+      req['appName'] = appName;
+      req['userName'] = userName;
+      // req['subdomain'] = subdomain;
       next();
     } catch (err) {
       console.error('Redis error:', err);
