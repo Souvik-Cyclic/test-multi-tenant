@@ -1,33 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { SubdomainMiddleware } from './middleware/subdomain.middleware';
-import { RedisClient } from './redis/redis.provider';
 import next from 'next';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
+import * as path from 'path';
 
 async function bootstrap() {
-  // const app = await NestFactory.create(AppModule);
   const server = express();
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
-  app.use(server);
 
-  const redisClient = app.get<RedisClient>('REDIS_CLIENT');
-  const middleware = new SubdomainMiddleware(redisClient);
-
-  app.use(middleware.use.bind(middleware));
   const frontend = next({
-    dev: false,
-    dir: './frontend/.next',
-  })
-
+    dev: true,
+    dir: path.join(__dirname, '..', 'frontend'),
+  });
   const handle = frontend.getRequestHandler();
   await frontend.prepare();
 
-  await app.init();
-  server.all('*', (req, res) => {
+  server.use((req, res, next) => {
     return handle(req, res);
   });
+
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+  
+  await app.init();
+
   await app.listen(8000);
+  console.log('http://localhost:8000');
 }
 bootstrap();
