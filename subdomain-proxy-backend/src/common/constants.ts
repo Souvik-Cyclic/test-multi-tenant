@@ -1,0 +1,19 @@
+export const RESTRICTED_SUBDOMAINS = [
+    'www',
+    'http',
+    'https',
+    'html',
+    'api',
+    'admin',
+    'static',
+    'photobooth',
+    'registration',
+    'games',
+    'web',
+    'mail',
+    'cdn',
+    'public',
+    'auth',
+    'assets',
+    'images'
+];
